@@ -46,6 +46,8 @@ def dep_tree(root, prefix=None):
     def dep_tree_impl(root, prefix):
         for dll in get_dependency(root):
             full_path = os.path.join(prefix, dll)
+            if full_path in dep_dlls:
+                continue
             if not os.path.exists(full_path):
                 if dll not in not_found:
                     not_found.append(dll)
