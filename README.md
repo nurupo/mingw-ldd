@@ -11,11 +11,9 @@ https://github.com/LRN/ntldd
 ## Usage
 
     $ python dependency.py /usr/i686-w64-mingw32/bin/libpng16-16.dll
-    Arch = i386
-    Using default prefix /usr/i686-w64-mingw32/bin
-    /usr/i686-w64-mingw32/bin/libgcc_s_sjlj-1.dll
-    /usr/i686-w64-mingw32/bin/libwinpthread-1.dll
-    /usr/i686-w64-mingw32/bin/zlib1.dll
-    The following dependencies were not found:
-    KERNEL32.dll
-    msvcrt.dll
+            libgcc_s_sjlj-1.dll => /usr/i686-w64-mingw32/bin/libgcc_s_sjlj-1.dll
+            KERNEL32.dll => not found
+            msvcrt.dll => not found
+            libwinpthread-1.dll => /usr/i686-w64-mingw32/bin/libwinpthread-1.dll
+            zlib1.dll => /usr/i686-w64-mingw32/bin/zlib1.dll
+

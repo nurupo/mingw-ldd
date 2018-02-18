@@ -37,27 +37,24 @@ def dep_tree(root, prefix=None):
         if arch not in prefixes:
             sys.stderr.write('Error: unknown architecture %s\n' % arch)
             sys.exit(1)
-        print('Arch =', arch)
+        #print('Arch =', arch)
         prefix = prefixes[arch]
-        print('Using default prefix', prefix)
-    dep_dlls = []
-    not_found = []
+        #print('Using default prefix', prefix)
+    dep_dlls = dict()
 
     def dep_tree_impl(root, prefix):
         for dll in get_dependency(root):
+            if dll in dep_dlls:
+                continue
             full_path = os.path.join(prefix, dll)
-            if full_path in dep_dlls:
-                continue
-            if not os.path.exists(full_path):
-                if dll not in not_found:
-                    not_found.append(dll)
-                continue
-            if full_path not in dep_dlls:
-                dep_dlls.append(full_path)
-            dep_tree_impl(full_path, prefix=prefix)
+            if os.path.exists(full_path):
+                dep_dlls[dll] = full_path
+                dep_tree_impl(full_path, prefix=prefix)
+            else:
+                dep_dlls[dll] = 'not found'
 
     dep_tree_impl(root, prefix)
-    return (dep_dlls, not_found)
+    return (dep_dlls)
 
 
 def get_arch(filename):
@@ -70,7 +67,6 @@ def get_arch(filename):
 
 if __name__ == '__main__':
     filename = sys.argv[1]
-    deps, not_found = dep_tree(filename)
-    print('\n'.join(deps))
-    print('The following dependencies not found: ')
-    print('\n'.join(not_found))
+    for dll, full_path in dep_tree(filename).items():
+        print(' ' * 7, dll, '=>', full_path)
+
