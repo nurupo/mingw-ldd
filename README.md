@@ -12,7 +12,7 @@ https://gist.github.com/yan12125/63c7241596e628553d21
 
 ## Usage
 
-    $ ./dependency.py /usr/i686-w64-mingw32/bin/libpng16-16.dll
+    $ ./mingw-ldd.py /usr/i686-w64-mingw32/bin/libpng16-16.dll
             libgcc_s_sjlj-1.dll => /usr/i686-w64-mingw32/bin/libgcc_s_sjlj-1.dll
             KERNEL32.dll => not found
             msvcrt.dll => not found
