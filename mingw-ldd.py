@@ -1,44 +1,24 @@
-#!/usr/bin/env python3
-# WTFPL – Do What the Fuck You Want to Public License
-import subprocess
+#!/usr/bin/env python
+# WTFPL - Do What the Fuck You Want to Public License
+from __future__ import print_function
+import pefile
 import os
 import sys
-
-prefixes = {
-    'i386': '/usr/i686-w64-mingw32/bin',
-    'AMD64': '/usr/x86_64-w64-mingw32/bin'
-}
-
-
-def search_line(command, needle, callback):
-    output = subprocess.check_output(command)
-    ret = None
-    for line in output.splitlines():
-        line_ = line.decode('utf-8')
-        if needle not in line_:
-            continue
-        ret = callback(line_)
-    return ret
 
 
 def get_dependency(filename):
     deps = []
-
-    def _add_dep(line):
-        deps.append(line.strip().split(' ')[2])
-
-    search_line(['winedump', '-j', 'import', filename], 'offset', _add_dep)
+    pe = pefile.PE(filename)
+    for imp in pe.DIRECTORY_ENTRY_IMPORT:
+        deps.append(imp.dll.decode())
     return deps
 
 
 def dep_tree(root, prefix=None):
     if not prefix:
         arch = get_arch(root)
-        if arch not in prefixes:
-            sys.stderr.write('Error: unknown architecture %s\n' % arch)
-            sys.exit(1)
         #print('Arch =', arch)
-        prefix = prefixes[arch]
+        prefix = '/usr/'+arch+'-w64-mingw32/bin'
         #print('Using default prefix', prefix)
     dep_dlls = dict()
 
@@ -58,12 +38,14 @@ def dep_tree(root, prefix=None):
 
 
 def get_arch(filename):
-    def _handle_line(line):
-        # (arch) is the last item. Use [1:-1] to get rid of parentheses
-        return line.strip().split(' ')[-1][1:-1]
-    return search_line(['winedump', 'dump', '-f', filename],
-                       'Machine:', _handle_line)
-
+    type2arch= {pefile.OPTIONAL_HEADER_MAGIC_PE: 'i686',
+                pefile.OPTIONAL_HEADER_MAGIC_PE_PLUS: 'x86_64'}
+    pe = pefile.PE(filename)
+    try:
+        return type2arch[pe.PE_TYPE]
+    except KeyError:
+        sys.stderr.write('Error: unknown architecture')
+        sys.exit(1)
 
 if __name__ == '__main__':
     filename = sys.argv[1]
