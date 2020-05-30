@@ -26,11 +26,11 @@ import pefile
 import os
 import sys
 
-def find_file_ignore_case(filepath):
-    (root, _, filenames) = next(os.walk(os.path.dirname(filepath)))
-    filename = os.path.basename(filepath).lower()
+def find_file_ignore_case(dirname, filename):
+    (root, _, filenames) = next(os.walk(dirname))
+    filename_lower = filename.lower()
     for f in filenames:
-        if f.lower() == filename:
+        if f.lower() == filename_lower:
             return os.path.join(root, f)
     return None
 
@@ -54,7 +54,7 @@ def dep_tree(pe, dll_lookup_dirs):
                 continue
             dlls[dll_lower] = 'not found'
             for dir in dll_lookup_dirs:
-                full_path = find_file_ignore_case(os.path.join(dir, dll))
+                full_path = find_file_ignore_case(dir, dll)
                 if full_path:
                     dlls[dll_lower] = full_path
                     dep_tree_impl(full_path)
