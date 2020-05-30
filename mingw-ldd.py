@@ -22,8 +22,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-import pefile
+import argparse
 import os
+import pefile
 import sys
 
 def find_file_ignore_case(dirname, filename):
@@ -65,13 +66,18 @@ def dep_tree(pe, dll_lookup_dirs):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) < 3:
-        sys.exit("Usage: {} PE_FILE DLL_LOOKUP_DIR [DLL_LOOKUP_DIR ...]".format(sys.argv[0]))
-    pe = sys.argv[1]
-    dll_lookup_dirs = [os.path.abspath(dir) for dir in sys.argv[2:]]
+    parser = argparse.ArgumentParser(description='ldd-like program for PE files')
+    parser.add_argument('--output-format', type=str, choices=('ldd-like', 'per-dep-list', 'tree'), default='ldd-like')
+    parser.add_argument('--dll-lookup-dirs', metavar='DLL_LOOKUP_DIR', type=str, default=[], nargs='+', required=True)
+    parser.add_argument('pe_file', metavar='PE_FILE')
+    args = parser.parse_args()
+    dll_lookup_dirs = [os.path.abspath(dir) for dir in args.dll_lookup_dirs]
     for dir in dll_lookup_dirs:
         if not os.path.isdir(dir):
-            sys.exit('Error: "{}" directory doesn\'t exist.'.format(p))
-    for dll, dll_path in sorted(dep_tree(pe, dll_lookup_dirs).items()):
+            sys.exit('Error: "{}" directory doesn\'t exist.'.format(dir))
+    if args.output_format != 'ldd-like':
+        sys.exit('Error: Output format {} is not supported yet.'.format(args.output_format))
+    deps = dep_tree(args.pe_file, dll_lookup_dirs)
+    for dll, dll_path in sorted(deps.items()):
         print(' ' * 7, dll, '=>', dll_path)
 
