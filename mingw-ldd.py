@@ -44,33 +44,33 @@ def get_dependency(filename):
     return deps
 
 
-def dep_tree(root, prefixes):
-    dep_dlls = dict()
+def dep_tree(pe, dll_lookup_dirs):
+    dlls = {}
 
-    def dep_tree_impl(root):
-        for dll in get_dependency(root):
+    def dep_tree_impl(pe):
+        for dll in get_dependency(pe):
             dll_lower = dll.lower()
-            if dll_lower in dep_dlls:
+            if dll_lower in dlls:
                 continue
-            dep_dlls[dll_lower] = 'not found'
-            for prefix in prefixes:
-                full_path = find_file_ignore_case(os.path.join(prefix, dll))
+            dlls[dll_lower] = 'not found'
+            for dir in dll_lookup_dirs:
+                full_path = find_file_ignore_case(os.path.join(dir, dll))
                 if full_path:
-                    dep_dlls[dll_lower] = full_path
+                    dlls[dll_lower] = full_path
                     dep_tree_impl(full_path)
 
-    dep_tree_impl(root)
-    return (dep_dlls)
+    dep_tree_impl(pe)
+    return dlls
 
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
         sys.exit("Usage: {} PE_FILE DLL_LOOKUP_DIR [DLL_LOOKUP_DIR ...]".format(sys.argv[0]))
-    filename = sys.argv[1]
-    prefixes = [os.path.abspath(p) for p in sys.argv[2:]]
-    for p in prefixes:
-        if not os.path.isdir(p):
+    pe = sys.argv[1]
+    dll_lookup_dirs = [os.path.abspath(dir) for dir in sys.argv[2:]]
+    for dir in dll_lookup_dirs:
+        if not os.path.isdir(dir):
             sys.exit('Error: "{}" directory doesn\'t exist.'.format(p))
-    for dll, full_path in dep_tree(filename, prefixes).items():
+    for dll, full_path in dep_tree(pe, dll_lookup_dirs).items():
         print(' ' * 7, dll, '=>', full_path)
 
