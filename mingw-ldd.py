@@ -71,6 +71,6 @@ if __name__ == '__main__':
     for dir in dll_lookup_dirs:
         if not os.path.isdir(dir):
             sys.exit('Error: "{}" directory doesn\'t exist.'.format(p))
-    for dll, full_path in dep_tree(pe, dll_lookup_dirs).items():
+    for dll, full_path in sorted(dep_tree(pe, dll_lookup_dirs).items()):
         print(' ' * 7, dll, '=>', full_path)
 
