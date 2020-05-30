@@ -26,6 +26,14 @@ import pefile
 import os
 import sys
 
+def find_file_ignore_case(filepath):
+    (root, _, filenames) = next(os.walk(os.path.dirname(filepath)))
+    filename = os.path.basename(filepath).lower()
+    for f in filenames:
+        if f.lower() == filename:
+            return os.path.join(root, f)
+    return None
+
 
 def get_dependency(filename):
     deps = []
@@ -46,8 +54,8 @@ def dep_tree(root, prefixes):
                 continue
             dep_dlls[dll_lower] = 'not found'
             for prefix in prefixes:
-                full_path = os.path.join(prefix, dll)
-                if os.path.exists(full_path):
+                full_path = find_file_ignore_case(os.path.join(prefix, dll))
+                if full_path:
                     dep_dlls[dll_lower] = full_path
                     dep_tree_impl(full_path)
 
