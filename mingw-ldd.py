@@ -68,6 +68,9 @@ if __name__ == '__main__':
         sys.exit("Usage: {} PE_FILE DLL_LOOKUP_DIR [DLL_LOOKUP_DIR ...]".format(sys.argv[0]))
     filename = sys.argv[1]
     prefixes = [os.path.abspath(p) for p in sys.argv[2:]]
+    for p in prefixes:
+        if not os.path.isdir(p):
+            sys.exit('Error: "{}" directory doesn\'t exist.'.format(p))
     for dll, full_path in dep_tree(filename, prefixes).items():
         print(' ' * 7, dll, '=>', full_path)
 
