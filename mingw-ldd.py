@@ -41,13 +41,14 @@ def dep_tree(root, prefixes):
 
     def dep_tree_impl(root):
         for dll in get_dependency(root):
-            if dll in dep_dlls:
+            dll_lower = dll.lower()
+            if dll_lower in dep_dlls:
                 continue
-            dep_dlls[dll] = 'not found'
+            dep_dlls[dll_lower] = 'not found'
             for prefix in prefixes:
                 full_path = os.path.join(prefix, dll)
                 if os.path.exists(full_path):
-                    dep_dlls[dll] = full_path
+                    dep_dlls[dll_lower] = full_path
                     dep_tree_impl(full_path)
 
     dep_tree_impl(root)
