@@ -46,6 +46,7 @@ def get_dependency(filename):
 
 def dep_tree(pe, dll_lookup_dirs):
     dlls = {}
+    arch = pefile.PE(pe).FILE_HEADER.Machine
 
     def dep_tree_impl(pe):
         for dll in get_dependency(pe):
@@ -54,10 +55,10 @@ def dep_tree(pe, dll_lookup_dirs):
                 continue
             dlls[dll_lower] = 'not found'
             for dir in dll_lookup_dirs:
-                full_path = find_file_ignore_case(dir, dll)
-                if full_path:
-                    dlls[dll_lower] = full_path
-                    dep_tree_impl(full_path)
+                dll_path = find_file_ignore_case(dir, dll)
+                if dll_path and pefile.PE(dll_path).FILE_HEADER.Machine == arch:
+                    dlls[dll_lower] = dll_path
+                    dep_tree_impl(dll_path)
 
     dep_tree_impl(pe)
     return dlls
@@ -71,6 +72,6 @@ if __name__ == '__main__':
     for dir in dll_lookup_dirs:
         if not os.path.isdir(dir):
             sys.exit('Error: "{}" directory doesn\'t exist.'.format(p))
-    for dll, full_path in sorted(dep_tree(pe, dll_lookup_dirs).items()):
-        print(' ' * 7, dll, '=>', full_path)
+    for dll, dll_path in sorted(dep_tree(pe, dll_lookup_dirs).items()):
+        print(' ' * 7, dll, '=>', dll_path)
 
