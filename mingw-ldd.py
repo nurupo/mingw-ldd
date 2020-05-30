@@ -30,8 +30,9 @@ import sys
 def get_dependency(filename):
     deps = []
     pe = pefile.PE(filename)
-    for imp in pe.DIRECTORY_ENTRY_IMPORT:
-        deps.append(imp.dll.decode())
+    if hasattr(pe, 'DIRECTORY_ENTRY_IMPORT'):
+        for imp in pe.DIRECTORY_ENTRY_IMPORT:
+            deps.append(imp.dll.decode())
     return deps
 
 
