@@ -47,12 +47,18 @@ def get_dependency(filename):
 
 def dep_tree(pe, dll_lookup_dirs):
     dlls = {}
+    deps = {}
     arch = pefile.PE(pe).FILE_HEADER.Machine
 
     def dep_tree_impl(pe):
+        pe = os.path.abspath(pe)
+        if pe in deps:
+            return
+        deps[pe] = []
         for dll in get_dependency(pe):
             dll_lower = dll.lower()
             if dll_lower in dlls:
+                deps[pe].append(dll)
                 continue
             dlls[dll_lower] = 'not found'
             for dir in dll_lookup_dirs:
@@ -60,14 +66,16 @@ def dep_tree(pe, dll_lookup_dirs):
                 if dll_path and pefile.PE(dll_path).FILE_HEADER.Machine == arch:
                     dlls[dll_lower] = dll_path
                     dep_tree_impl(dll_path)
+                    break
+            deps[pe].append(dll)
 
     dep_tree_impl(pe)
-    return dlls
+    return (dlls, deps)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='ldd-like program for PE files')
-    parser.add_argument('--output-format', type=str, choices=('ldd-like', 'per-dep-list', 'tree'), default='ldd-like')
+    parser.add_argument('--output-format', type=str, choices=('ldd-like', 'per-pe-list', 'tree'), default='ldd-like')
     parser.add_argument('--dll-lookup-dirs', metavar='DLL_LOOKUP_DIR', type=str, default=[], nargs='+', required=True)
     parser.add_argument('pe_file', metavar='PE_FILE')
     args = parser.parse_args()
@@ -75,9 +83,28 @@ if __name__ == '__main__':
     for dir in dll_lookup_dirs:
         if not os.path.isdir(dir):
             sys.exit('Error: "{}" directory doesn\'t exist.'.format(dir))
-    if args.output_format != 'ldd-like':
-        sys.exit('Error: Output format {} is not supported yet.'.format(args.output_format))
-    deps = dep_tree(args.pe_file, dll_lookup_dirs)
-    for dll, dll_path in sorted(deps.items()):
-        print(' ' * 7, dll, '=>', dll_path)
-
+    (dlls, deps) = dep_tree(args.pe_file, dll_lookup_dirs)
+    if args.output_format == 'ldd-like':
+        for dll, dll_path in sorted(dlls.items(), key=lambda e: e[0].casefold()):
+            print(' ' * 7, dll, '=>', dll_path)
+    elif args.output_format == 'per-pe-list':
+        for pe, dll_names in sorted(deps.items(), key=lambda e: e[0].casefold()):
+            print(pe)
+            for dll in sorted(dll_names, key=str.casefold):
+                dll_path = dlls[dll.lower()]
+                print(' ' * 7, dll, '=>', dll_path)
+    elif args.output_format == 'tree':
+        def print_tree(pe, level=0, prefix=''):
+            if level == 0:
+                print(pe)
+                print_tree(pe, 1, '')
+                return
+            count = 0
+            for dll in sorted(deps[pe], key=str.casefold):
+                dll_path = dlls[dll.lower()]
+                count += 1
+                is_last_dll = count == len(deps[pe])
+                new_prefix = '{}{}'.format(prefix, '    ' if is_last_dll else '│   ')
+                print('{}{} {} => {}'.format(prefix, '└──' if is_last_dll else '├──', dll, dll_path))
+                print_tree(dll_path, level+1, new_prefix)
+        print_tree(os.path.abspath(args.pe_file))
