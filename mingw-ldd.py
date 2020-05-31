@@ -99,6 +99,8 @@ if __name__ == '__main__':
                 print(pe)
                 print_tree(pe, 1, '')
                 return
+            if pe == 'not found':
+                return
             count = 0
             for dll in sorted(deps[pe], key=str.casefold):
                 dll_path = dlls[dll.lower()]
