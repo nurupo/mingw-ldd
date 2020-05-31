@@ -37,11 +37,10 @@ def find_file_ignore_case(dirname, filename):
     return None
 
 
-def get_dependency(filename):
+def get_dependency(pe_data):
     deps = []
-    pe = pefile.PE(filename)
-    if hasattr(pe, 'DIRECTORY_ENTRY_IMPORT'):
-        for imp in pe.DIRECTORY_ENTRY_IMPORT:
+    if hasattr(pe_data, 'DIRECTORY_ENTRY_IMPORT'):
+        for imp in pe_data.DIRECTORY_ENTRY_IMPORT:
             deps.append(imp.dll.decode())
     return deps
 
@@ -49,14 +48,16 @@ def get_dependency(filename):
 def dep_tree(pe, dll_lookup_dirs):
     dlls = {}
     deps = {}
-    arch = pefile.PE(pe).FILE_HEADER.Machine
+    dlls_blacklist = []
+    pe_data = pefile.PE(pe)
+    arch = pe_data.FILE_HEADER.Machine
 
-    def dep_tree_impl(pe):
+    def dep_tree_impl(pe, pe_data):
         pe = os.path.abspath(pe)
         if pe in deps:
             return
         deps[pe] = []
-        for dll in get_dependency(pe):
+        for dll in get_dependency(pe_data):
             dll_lower = dll.lower()
             if dll_lower in dlls:
                 deps[pe].append(dll)
@@ -64,13 +65,18 @@ def dep_tree(pe, dll_lookup_dirs):
             dlls[dll_lower] = 'not found'
             for dir in dll_lookup_dirs:
                 dll_path = find_file_ignore_case(dir, dll)
-                if dll_path and pefile.PE(dll_path).FILE_HEADER.Machine == arch:
+                if not dll_path or dll_path in dlls_blacklist:
+                    continue
+                new_pe_data = pefile.PE(dll_path)
+                if new_pe_data.FILE_HEADER.Machine == arch:
                     dlls[dll_lower] = dll_path
-                    dep_tree_impl(dll_path)
+                    dep_tree_impl(dll_path, new_pe_data)
                     break
+                else:
+                    dlls_blacklist.append(dll_path)
             deps[pe].append(dll)
 
-    dep_tree_impl(pe)
+    dep_tree_impl(pe, pe_data)
     return (dlls, deps)
 
 
