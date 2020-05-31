@@ -33,7 +33,7 @@ virtualenv -p /usr/bin/python3 env
 
 ```sh
 $ mingw-ldd.py -h
-usage: mingw-ldd.py [-h] [--output-format {ldd-like,per-pe-list,tree}] --dll-lookup-dirs DLL_LOOKUP_DIR [DLL_LOOKUP_DIR ...] PE_FILE
+usage: mingw-ldd.py [-h] [--output-format {ldd-like,per-dep-list,tree}] --dll-lookup-dirs DLL_LOOKUP_DIR [DLL_LOOKUP_DIR ...] PE_FILE
 
 # Intentionally using 64-bit system32 to show off "not found" in these examples
 
@@ -55,9 +55,9 @@ $ ./mingw-ldd.py /home/nurupo/qtox/workspace/i686/qtox/release/libtoxcore.dll \
         user32.dll => not found
         ws2_32.dll => not found
 
-# per-pe-list output
+# per-dep-list output
 $ ./mingw-ldd.py /home/nurupo/qtox/workspace/i686/qtox/release/libtoxcore.dll \
-                 --output-format per-pe-list \
+                 --output-format per-dep-list \
                  --dll-lookup-dirs /usr/lib/gcc/i686-w64-mingw32/*-posix \
                                    /usr/i686-w64-mingw32/lib \
                                    /home/nurupo/.wine/drive_c/windows/system32 \

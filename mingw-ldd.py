@@ -75,7 +75,7 @@ def dep_tree(pe, dll_lookup_dirs):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='ldd-like program for PE files')
-    parser.add_argument('--output-format', type=str, choices=('ldd-like', 'per-pe-list', 'tree'), default='ldd-like')
+    parser.add_argument('--output-format', type=str, choices=('ldd-like', 'per-dep-list', 'tree'), default='ldd-like')
     parser.add_argument('--dll-lookup-dirs', metavar='DLL_LOOKUP_DIR', type=str, default=[], nargs='+', required=True)
     parser.add_argument('pe_file', metavar='PE_FILE')
     args = parser.parse_args()
@@ -87,7 +87,7 @@ if __name__ == '__main__':
     if args.output_format == 'ldd-like':
         for dll, dll_path in sorted(dlls.items(), key=lambda e: e[0].casefold()):
             print(' ' * 7, dll, '=>', dll_path)
-    elif args.output_format == 'per-pe-list':
+    elif args.output_format == 'per-dep-list':
         for pe, dll_names in sorted(deps.items(), key=lambda e: e[0].casefold()):
             print(pe)
             for dll in sorted(dll_names, key=str.casefold):
