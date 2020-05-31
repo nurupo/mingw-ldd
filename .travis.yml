@@ -1,0 +1,19 @@
+dist: xenial
+
+language: python
+
+python:
+  - 3.5
+  - 3.6
+  - 3.7
+  - 3.8
+
+install:
+  - python setup.py install
+
+script:
+  - apt-get install -y --no-install-recommends g++-mingw-w64-i686   \
+                                               g++-mingw-w64-x86-64 \
+                                               gcc-mingw-w64-i686   \
+                                               gcc-mingw-w64-x86-64
+  - ./test.sh

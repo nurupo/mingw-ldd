@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 # MIT License
 #
@@ -73,8 +74,14 @@ def dep_tree(pe, dll_lookup_dirs):
     return (dlls, deps)
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='ldd-like program for PE files')
+def main():
+    try:
+        from .__version__ import __description__, __version__
+    except:
+        parser = argparse.ArgumentParser()
+    else:
+        parser = argparse.ArgumentParser(description=__description__)
+        parser.add_argument('--version', action='version', version='{}'.format(__version__))
     parser.add_argument('--output-format', type=str, choices=('ldd-like', 'per-dep-list', 'tree'), default='ldd-like')
     parser.add_argument('--dll-lookup-dirs', metavar='DLL_LOOKUP_DIR', type=str, default=[], nargs='+', required=True)
     parser.add_argument('pe_file', metavar='PE_FILE')
@@ -110,3 +117,6 @@ if __name__ == '__main__':
                 print('{}{} {} => {}'.format(prefix, '└──' if is_last_dll else '├──', dll, dll_path))
                 print_tree(dll_path, level+1, new_prefix)
         print_tree(os.path.abspath(args.pe_file))
+
+if __name__ == '__main__':
+    main()

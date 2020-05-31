@@ -1,6 +1,6 @@
 # mingw-ldd
 
-Tool to list dependencies of a PE (exe/dll) file.
+Script listing dependencies of a PE (exe/dll) file.
 
 ## Features
 
@@ -14,11 +14,18 @@ Note that the arguments do not mimic ldd arguments.
 
 ## Usage
 
-### Install dependencies
+The script can be installed from PyPi:
 
+```sh
+pip install mingw_ldd
+mingw-ldd --help
+```
+
+The script can be used as stanalone, given you have `pefile` installed:
 
 ```sh
 sudo apt-get install python3-pefile
+./mingw_ldd.py --help
 ```
 
 or
@@ -27,9 +34,10 @@ or
 sudo apt-get install virtualenv
 virtualenv -p /usr/bin/python3 env
 ./env/bin/pip install -r requirements.txt
+./env/bin/python3 mingw_ldd.py --help
 ```
 
-### Use
+## Examples
 
 ```sh
 $ mingw-ldd.py -h
