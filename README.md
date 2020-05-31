@@ -1,6 +1,6 @@
 # mingw-ldd
 
-Script listing dependencies of a PE (exe/dll) file.
+Lists dependencies of a PE (exe/dll) file.
 
 ## Features
 
