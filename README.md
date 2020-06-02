@@ -2,6 +2,7 @@
 
 Lists dependencies of a PE (exe/dll) file.
 
+
 ## Features
 
 - Mimics ldd output
@@ -10,8 +11,10 @@ Lists dependencies of a PE (exe/dll) file.
 - Makes sure the dependencies are of the same CPU architecture
 - Sorts the output by dll name
 - Can also print per-dep or tree outputs
+- Uses multiprocessing to speed up the dll lookup
 
 Note that the arguments do not mimic ldd arguments.
+
 
 ## Usage
 
@@ -26,7 +29,7 @@ The script can be used stanalone, given you have `pefile` installed:
 
 ```sh
 sudo apt-get install python3-pefile
-./mingw_ldd.py --help
+./mingw_ldd/mingw_ldd.py --help
 ```
 
 or:
@@ -35,14 +38,17 @@ or:
 sudo apt-get install virtualenv
 virtualenv -p /usr/bin/python3 env
 ./env/bin/pip install -r requirements.txt
-./env/bin/python3 mingw_ldd.py --help
+./env/bin/python3 ./mingw_ldd/mingw_ldd.py --help
 ```
+
+The `mingw_ldd.py` script file is self-contained and can be easily copied into other project's codebase.
+
 
 ## Example
 
 ```sh
 $ mingw-ldd.py -h
-usage: mingw-ldd.py [-h] [--output-format {ldd-like,per-dep-list,tree}] --dll-lookup-dirs DLL_LOOKUP_DIR [DLL_LOOKUP_DIR ...] PE_FILE
+usage: mingw_ldd.py [-h] [--output-format {ldd-like,per-dep-list,tree}] --dll-lookup-dirs DLL_LOOKUP_DIR [DLL_LOOKUP_DIR ...] [--disable-multiprocessing] PE_FILE
 ```
 
 Ldd-like output:
@@ -107,6 +113,7 @@ $ ./mingw-ldd.py /home/nurupo/qtox/workspace/i686/qtox/release/libtoxcore.dll \
         msvcrt.dll => not found
 ```
 
+
 Tree output:
 
 ```sh
@@ -162,6 +169,20 @@ $ ./mingw-ldd.py /home/nurupo/qtox/workspace/i686/qtox/release/libtoxcore.dll \
 ├── msvcrt.dll => not found
 └── WS2_32.dll => not found
 ```
+
+
+## Performance
+
+The performance might be a bit slower than expected due to `pefile` sometimes taking up to few seconds to parse a dll.
+We try to mitigate this by multiprocessing pefile's parsing.
+Using the most up to date `pefile` should help too.
+Specifically, the current version of `pefile` on PyPi -- version 2019.4.18, is noticeably faster than the version 2018.8.8 packaged in Debian Buster.
+
+If the performance is an issue, you could give these projects a try:
+
+- [ntldd](https://github.com/LRN/ntldd) - a cross-platform ldd-like program written in C
+- [Dependency Walker](https://www.dependencywalker.com/) - a freeware Windows GUI application that displays PE dependencies
+
 
 ## Disclaimer
 
