@@ -24,6 +24,7 @@
 # THE SOFTWARE.
 
 import argparse
+import concurrent.futures
 import os
 import pefile
 import sys
@@ -37,7 +38,7 @@ def find_file_ignore_case(dirname, filename):
     return None
 
 
-def get_dependency(pe_data):
+def get_pe_deps(pe_data):
     deps = []
     if hasattr(pe_data, 'DIRECTORY_ENTRY_IMPORT'):
         for imp in pe_data.DIRECTORY_ENTRY_IMPORT:
@@ -45,38 +46,49 @@ def get_dependency(pe_data):
     return deps
 
 
-def dep_tree(pe, dll_lookup_dirs):
-    dlls = {}
-    deps = {}
-    dlls_blacklist = []
+def find_dll(dll, dll_lookup_dirs, arch):
+    for dir in dll_lookup_dirs:
+        dll_path = find_file_ignore_case(dir, dll)
+        if not dll_path:
+            continue
+        pe_data = pefile.PE(dll_path)
+        if pe_data.FILE_HEADER.Machine == arch:
+            return (dll_path, get_pe_deps(pe_data))
+    return (None, None)
+
+
+def dep_tree(pe, dll_lookup_dirs, disable_multiprocessing):
+    dlls = {} # stores all dlls we encounter, specifically {(basename(dll)).lower(): abspath(dll)}
+    deps = {} # stores pe -> [dll] relations, specifically {abspath(pe): [basename(pe's direct dll dep)]}
     pe_data = pefile.PE(pe)
     arch = pe_data.FILE_HEADER.Machine
 
-    def dep_tree_impl(pe, pe_data):
+    def _dep_tree(pe, pe_deps):
         pe = os.path.abspath(pe)
         if pe in deps:
+            # aleady processed before
             return
-        deps[pe] = []
-        for dll in get_dependency(pe_data):
-            dll_lower = dll.lower()
-            if dll_lower in dlls:
-                deps[pe].append(dll)
-                continue
-            dlls[dll_lower] = 'not found'
-            for dir in dll_lookup_dirs:
-                dll_path = find_file_ignore_case(dir, dll)
-                if not dll_path or dll_path in dlls_blacklist:
-                    continue
-                new_pe_data = pefile.PE(dll_path)
-                if new_pe_data.FILE_HEADER.Machine == arch:
-                    dlls[dll_lower] = dll_path
-                    dep_tree_impl(dll_path, new_pe_data)
-                    break
-                else:
-                    dlls_blacklist.append(dll_path)
-            deps[pe].append(dll)
+        deps[pe] = pe_deps
+        dll_to_future_result = []
+        # pefile.PE() takes very long time to run, so use multiprocessing to speed it up
+        with (concurrent.futures.ThreadPoolExecutor(max_workers=1) if disable_multiprocessing else concurrent.futures.ProcessPoolExecutor()) as executor:
+            # look only for the dlls we haven't found yet
+            future_to_dll = {executor.submit(find_dll, dll, dll_lookup_dirs, arch): dll for dll in pe_deps if dll.lower() not in dlls}
+            # wait for multiprocessing to finish and collect results
+            dll_to_future_result = [(future_to_dll[future], future.result()) for future in concurrent.futures.as_completed(future_to_dll)]
+        for (dll, (dll_path, _)) in dll_to_future_result:
+            # store the found dll
+            if dll_path:
+                dlls[dll.lower()] = dll_path
+            # note that the dll wasn't found, so that we don't try to look for it again
+            else:
+                dlls[dll.lower()] = 'not found'
+        # recursively process newly found dlls
+        for (dll, (dll_path, dll_deps)) in dll_to_future_result:
+            if dll_path:
+                _dep_tree(dll_path, dll_deps)
 
-    dep_tree_impl(pe, pe_data)
+    _dep_tree(pe, get_pe_deps(pe_data))
     return (dlls, deps)
 
 
@@ -90,13 +102,14 @@ def main():
         parser.add_argument('--version', action='version', version='{}'.format(__version__))
     parser.add_argument('--output-format', type=str, choices=('ldd-like', 'per-dep-list', 'tree'), default='ldd-like')
     parser.add_argument('--dll-lookup-dirs', metavar='DLL_LOOKUP_DIR', type=str, default=[], nargs='+', required=True)
+    parser.add_argument('--disable-multiprocessing', default=False, action='store_true')
     parser.add_argument('pe_file', metavar='PE_FILE')
     args = parser.parse_args()
     dll_lookup_dirs = [os.path.abspath(dir) for dir in args.dll_lookup_dirs]
     for dir in dll_lookup_dirs:
         if not os.path.isdir(dir):
             sys.exit('Error: "{}" directory doesn\'t exist.'.format(dir))
-    (dlls, deps) = dep_tree(args.pe_file, dll_lookup_dirs)
+    (dlls, deps) = dep_tree(args.pe_file, dll_lookup_dirs, args.disable_multiprocessing)
     if args.output_format == 'ldd-like':
         for dll, dll_path in sorted(dlls.items(), key=lambda e: e[0].casefold()):
             print(' ' * 7, dll, '=>', dll_path)
