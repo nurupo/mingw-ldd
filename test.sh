@@ -5,32 +5,38 @@
 set -exo pipefail
 
 # Try both arches
-__TEST()
+__MINGW_TEST()
 {
   "$@"
   "${@//i686/x86_64}"
 }
 
 # Try all output formats
-_TEST()
+_MINGW_TEST()
 {
-  __TEST "$@"
-  __TEST "$@" --output-format ldd-like
-  __TEST "$@" --output-format per-dep-list
-  __TEST "$@" --output-format tree
+  __MINGW_TEST "$@"
+  __MINGW_TEST "$@" --output-format ldd-like
+  __MINGW_TEST "$@" --output-format per-dep-list
+  __MINGW_TEST "$@" --output-format tree
 }
 
 # Try all invocation methods
-TEST()
+MINGW_TEST()
 {
-  _TEST mingw-ldd "$@"
-  _TEST python3 -m mingw_ldd "$@"
-  _TEST python3 mingw_ldd/mingw_ldd.py "$@"
+  _MINGW_TEST mingw-ldd "$@"
+  _MINGW_TEST python3 -m mingw_ldd "$@"
+  _MINGW_TEST python3 mingw_ldd/mingw_ldd.py "$@"
 }
 
-# Tests should use i686 arch without output formatting specified
+# MinGW tests should use i686 arch without output formatting specified
 
-TEST /usr/lib/gcc/i686-w64-mingw32/*-posix/libgomp-1*.dll \
-     --dll-lookup-dirs /usr/lib/gcc/i686-w64-mingw32/*-posix \
-                       /usr/i686-w64-mingw32/lib
+MINGW_TEST /usr/lib/gcc/i686-w64-mingw32/*-posix/libgomp-1*.dll \
+           --dll-lookup-dirs /usr/lib/gcc/i686-w64-mingw32/*-posix \
+                             /usr/i686-w64-mingw32/lib
 
+# Test tree output recursion
+# Note that Wine changes dll deps often, so this test might fail if they remove
+# the cyclic dependency
+mingw-ldd ~/.wine/drive_c/windows/system32/avifil32.dll \
+          --dll-lookup-dirs ~/.wine/drive_c/windows/system32 \
+          --output-format tree | grep 'recursion'
