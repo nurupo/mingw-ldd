@@ -120,10 +120,11 @@ def main():
                 dll_path = dlls[dll.lower()]
                 print(' ' * 7, dll, '=>', dll_path)
     elif args.output_format == 'tree':
-        def print_tree(pe, level=0, prefix=''):
+        def print_tree(pe, level=0, prefix='', printed=set()):
             if level == 0:
                 print(pe)
-                print_tree(pe, 1, '')
+                printed.add(os.path.basename(pe).lower())
+                print_tree(pe, 1, '', printed)
                 return
             if pe == 'not found':
                 return
@@ -132,9 +133,13 @@ def main():
                 dll_path = dlls[dll.lower()]
                 count += 1
                 is_last_dll = count == len(deps[pe])
-                new_prefix = '{}{}'.format(prefix, '    ' if is_last_dll else '│   ')
-                print('{}{} {} => {}'.format(prefix, '└──' if is_last_dll else '├──', dll, dll_path))
-                print_tree(dll_path, level+1, new_prefix)
+                is_recursion = dll in printed
+                print('{}{} {} => {}'.format(prefix, '└──' if is_last_dll else '├──', dll, 'recursion' if is_recursion else dll_path))
+                if not is_recursion:
+                    printed.add(dll)
+                    new_prefix = '{}{}'.format(prefix, '    ' if is_last_dll else '│   ')
+                    print_tree(dll_path, level+1, new_prefix)
+                    printed.remove(dll)
         print_tree(os.path.abspath(args.pe_file))
 
 if __name__ == '__main__':
