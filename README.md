@@ -10,7 +10,7 @@ Lists dependencies of a PE (exe/dll) file.
 - Has no hardcoded dll lookup paths
 - Makes sure the dependencies are of the same CPU architecture
 - Sorts the output by dll name
-- Can also print per-dep or tree outputs
+- Can also print in per-dep or tree output formats
 - Uses multiprocessing to speed up the dll lookup
 
 Note that the arguments do not mimic ldd arguments.
@@ -182,6 +182,28 @@ If the performance is an issue, you could give these projects a try:
 
 - [ntldd](https://github.com/LRN/ntldd) - a cross-platform ldd-like program written in C
 - [Dependency Walker](https://www.dependencywalker.com/) - a freeware Windows GUI application that displays PE dependencies
+
+
+## Known issues
+
+### API Set dlls
+
+Dlls that start with `api-` and `ext-`, e.g. `api-ms-win-core-heap-l2-1-0.dll` or `ext-ms-win-ntuser-window-l1-1-1.dll`, might get incorrectly marked as "not found".
+
+Such dlls are part of Windows's [API Set](https://docs.microsoft.com/en-us/windows/win32/apiindex/windows-apisets) feature.
+The way the API Set works, is that often times the requested dlls don't even exist on the system, instead the library loader notices `api-*.dll` and `ext-*.dll` patterns and queries a mapping data-structure found in `ApiSetSchema.dll` to see which actual dlls those names map to and links those instead.
+For example, linking to [`api-ms-win-core-heap-l2-1-0.dll`, in which one would expect to find the `LocalAlloc` function](https://docs.microsoft.com/en-us/uwp/win32-and-com/win32-apis#apis-from-api-ms-win-core-heap-l2-1-0dll), would [instead result in linking to `kernel32.dll`](https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-localalloc), and [`ext-ms-win-ntuser-window-l1-1-1.dll`, in which one would expect to find the `FindWindowEx` function, would instead link to `user32.dll`](https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-findnextfilea).
+
+mingw-ldd scans directories for actual dll files, so since `api-` and `ext-` dlls might not exist, they could be just some table mappings to other dlls instead, mingw-ldd is unable to find them and thus reports "not found".
+There is no public interface for applications to access this API Set dll mapping, the format of the mapping is not documented, and there are several reverse engineering articles attempting to document it, noting that `ApiSetSchema.dll` offsets change from architecture to architecture.
+
+Because it's rather non-trivial and non-portable to access this mapping, mingw-ldd doesn't implement any API Set dll resolution.
+It also doesn't affect my use-case of mingw-ldd, which is to see if a Windows binary I have built is missing any dll dependency before I zip it and package for users to download.
+Because these API Set dlls are system libraries, you might just assume that they all are present.
+It's non-system dlls missing that I'm more concerned about.
+
+This doesn't mean that I don't want to see API Set dll resolution implemented.
+Feel free to make a Python module parsing `ApiSetSchema.dll` that hides the portability details and I will make mingw-ldd use it.
 
 
 ## Disclaimer
